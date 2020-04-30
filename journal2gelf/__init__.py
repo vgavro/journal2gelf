@@ -33,6 +33,12 @@ def main():
                         help="don't exclude fields, excluded by default")
     parser.add_argument('-u', '--uppercase', action='store_true',
                         help="don't lower field names in output")
+    parser.add_argument('--message-json', action='store_true',
+                        help="try to load json object from MESSAGE if found (may lead to key overlap)")
+    parser.add_argument('--convert-record',
+                        help="custom python function like 'module.func_name' for record convertion")
+    parser.add_argument('--no-dup-underscore', action='store_true',
+                        help="do not underscore journal _* fields second time (may lead to key overlap)")
     parser.add_argument('--debug', action='store_true',
                         help="print GELF jsons to stdout")
     parser.add_argument('--merge', action='store_true',
@@ -54,6 +60,16 @@ def main():
     conv.debug = args.debug
     conv.send = not args.dry_run
     conv.lower = not args.uppercase
+    conv.message_json = args.message_json
+    conv.no_dup_underscore = args.no_dup_underscore
+    if args.convert_record:
+        # partly borrowed from from werkzeug.utils.import_string
+        module_name, obj_name = args.convert_record.rsplit('.', 1)
+        module = __import__(module_name, globals(), locals(), [obj_name])
+        try:
+            conv.convert_record = getattr(module, obj_name)
+        except AttributeError as e:
+            raise ImportError(e)
 
     cursor = load_cursor()
 

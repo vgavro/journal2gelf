@@ -35,6 +35,9 @@ class Converter(object):
         self.send = True
         self.lower = True
         self.cursor = None
+        self.message_json = False
+        self.no_dup_underscore = False
+        self.convert_record = convert_record
 
     def run(self, merge=False, cursor=None):
         j = Reader()
@@ -60,7 +63,9 @@ class Converter(object):
 
         for record in j:
             self.cursor = record['__CURSOR']
-            record = convert_record(record, excludes=self.exclude_fields, lower=self.lower)
+            record = self.convert_record(
+                record, excludes=self.exclude_fields, lower=self.lower,
+                no_dup_underscore=self.no_dup_underscore, message_json=self.message_json)
             if self.send:
                 self.gelf.log(**record)
             if self.debug:
@@ -69,7 +74,8 @@ class Converter(object):
 
 # See https://www.graylog.org/resources/gelf-2/#specs
 # And http://www.freedesktop.org/software/systemd/man/systemd.journal-fields.html
-def convert_record(src, excludes=set(), lower=True):
+def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
+                   message_json=False):
     for k, v in list(src.items()):
         conv = field_converters.get(k)
         if conv:
@@ -78,10 +84,16 @@ def convert_record(src, excludes=set(), lower=True):
             except ValueError:
                 pass
 
+    if message_json and src.get('MESSAGE', '').startswith(b'{"'):
+        try:
+            src.update({'_'+k: v for k, v in json.loads(src['MESSAGE'])})
+        except json.JSONDecodeError:
+            pass
+
     dst = {
         b'version': b'1.1',
         b'host': src.pop(b'_HOSTNAME', None),
-        b'short_message': src.pop(b'MESSAGE', None),
+        b'short_message': src.pop(b'MESSAGE', b''),
         b'timestamp': src.pop(b'__REALTIME_TIMESTAMP', None),
         b'level': src.pop(b'PRIORITY', None),
         b'_facility': src.get(b'SYSLOG_IDENTIFIER') or src.get(b'_COMM')
@@ -94,7 +106,10 @@ def convert_record(src, excludes=set(), lower=True):
             k = k.lower()
         if k in system_fields:
             k = b'_'+k
-        dst[b'_'+k] = v
+        if not no_dup_underscore or k[0] != 95:  # 95 is underscore
+            dst[b'_'+k] = v
+        else:
+            dst[k] = v
 
     return dst
 
