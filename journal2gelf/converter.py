@@ -77,13 +77,13 @@ class Converter(object):
 def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
                    message_json=False):
     for k, v in list(src.items()):
-        conv = field_converters.get(k)
+        conv = field_converters.get(k.encode())
         if conv:
             try:
                 src[k] = conv(v)
             except ValueError:
                 pass
-
+    print(src.keys())
     if message_json and src.get('MESSAGE', '').startswith(b'{"'):
         try:
             src.update({'_'+k: v for k, v in json.loads(src['MESSAGE'])})
@@ -105,13 +105,20 @@ def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
         if lower:
             k = k.lower()
         if k in system_fields:
-            k = b'_'+k
+            k = b'_'+k.encode()
         if not no_dup_underscore or k[0] != 95:  # 95 is underscore
-            dst[b'_'+k] = v
+            dst[b'_'+k.encode()] = v
         else:
-            dst[k] = v
+            dst[k.encode()] = v
 
-    return dst
+    result = {}
+    for key, value in list(dst.items()):
+        if isinstance(key, bytes):
+            key = key.decode('utf8')
+        if isinstance(value, bytes):
+            value = value.decode('utf8')
+        result[key] = value
+    return result
 
 
 def convert_timestamp(value):

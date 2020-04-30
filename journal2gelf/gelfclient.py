@@ -52,7 +52,7 @@ class UdpClient(object):
                 message['host'] = self.source
 
         message_json = json.dumps(message, separators=(',', ':'), ensure_ascii=False)
-        output = zlib.compress(message_json)
+        output = zlib.compress(message_json.encode())
         if len(output) > self.mtu:
             for chunk in self.chunks(output):
                 self.sock.sendto(chunk, self.sockaddr)
