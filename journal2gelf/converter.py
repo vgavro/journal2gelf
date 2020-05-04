@@ -83,7 +83,6 @@ def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
                 src[k] = conv(v)
             except ValueError:
                 pass
-    print(src.keys())
     if message_json and src.get('MESSAGE', '').startswith(b'{"'):
         try:
             src.update({'_'+k: v for k, v in json.loads(src['MESSAGE'])})
@@ -92,11 +91,11 @@ def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
 
     dst = {
         b'version': b'1.1',
-        b'host': src.pop(b'_HOSTNAME', None),
-        b'short_message': src.pop(b'MESSAGE', b''),
-        b'timestamp': src.pop(b'__REALTIME_TIMESTAMP', None),
-        b'level': src.pop(b'PRIORITY', None),
-        b'_facility': src.get(b'SYSLOG_IDENTIFIER') or src.get(b'_COMM')
+        b'host': src.pop('_HOSTNAME', None),
+        b'short_message': src.pop('MESSAGE', b''),
+        b'timestamp': src.pop('__REALTIME_TIMESTAMP', None),
+        b'level': src.pop('PRIORITY', None),
+        b'_facility': src.get('SYSLOG_IDENTIFIER') or src.get('_COMM')
     }
 
     for k, v in list(src.items()):
