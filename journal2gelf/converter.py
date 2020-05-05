@@ -11,17 +11,17 @@ from .reader import Reader
 
 log = logging.getLogger(__name__)
 default_exclude_fields = frozenset([
-    b'__MONOTONIC_TIMESTAMP',
-    b'_MACHINE_ID',
-    b'__CURSOR',
-    b'_SYSTEMD_CGROUP',
-    b'_AUDIT_SESSION',
-    b'_CAP_EFFECTIVE',
-    b'_SYSTEMD_SLICE',
-    b'_AUDIT_LOGINUID',
-    b'_SYSTEMD_OWNER_UID',
-    b'_SOURCE_REALTIME_TIMESTAMP',
-    b'_SYSTEMD_SESSION',
+    '__MONOTONIC_TIMESTAMP',
+    '_MACHINE_ID',
+    '__CURSOR',
+    '_SYSTEMD_CGROUP',
+    '_AUDIT_SESSION',
+    '_CAP_EFFECTIVE',
+    '_SYSTEMD_SLICE',
+    '_AUDIT_LOGINUID',
+    '_SYSTEMD_OWNER_UID',
+    '_SOURCE_REALTIME_TIMESTAMP',
+    '_SYSTEMD_SESSION',
 ])
 
 
@@ -84,19 +84,19 @@ def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
             except ValueError:
                 pass
 
-    if message_json and src.get('MESSAGE', '').startswith(b'{"'):
+    if message_json and src.get('MESSAGE', b'').startswith(b'{"'):
         try:
-            src.update({'_'+k: v for k, v in json.loads(src['MESSAGE'])})
+            src.update({'_'+k: v for k, v in json.loads(src['MESSAGE'])}.items())
         except json.JSONDecodeError:
             pass
 
     dst = {
-        b'version': b'1.1',
-        b'host': src.pop(b'_HOSTNAME', None),
-        b'short_message': src.pop(b'MESSAGE', b''),
-        b'timestamp': src.pop(b'__REALTIME_TIMESTAMP', None),
-        b'level': src.pop(b'PRIORITY', None),
-        b'_facility': src.get(b'SYSLOG_IDENTIFIER') or src.get(b'_COMM')
+        'version': '1.1',
+        'host': src.pop('_HOSTNAME', None),
+        'short_message': src.pop('MESSAGE', b''),
+        'timestamp': src.pop('__REALTIME_TIMESTAMP', None),
+        'level': src.pop('PRIORITY', None),
+        '_facility': src.get('SYSLOG_IDENTIFIER') or src.get('_COMM')
     }
 
     for k, v in list(src.items()):
@@ -105,12 +105,11 @@ def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
         if lower:
             k = k.lower()
         if k in system_fields:
-            k = b'_'+k
-        if not no_dup_underscore or k[0] != 95:  # 95 is underscore
-            dst[b'_'+k] = v
+            k = '_'+k
+        if not no_dup_underscore or k[0] != '_':
+            dst['_'+k] = v
         else:
             dst[k] = v
-
     return dst
 
 
@@ -119,45 +118,42 @@ def convert_timestamp(value):
 
 
 def convert_monotonic_timestamp(value):
-    try:
-        return convert_timestamp(value[0])
-    except:
-        raise ValueError
+    return convert_timestamp(value[0])
 
 
 field_converters = {
-    b'__MONOTONIC_TIMESTAMP': convert_monotonic_timestamp,
-    b'EXIT_STATUS': int,
-    b'_AUDIT_LOGINUID': int,
-    b'_PID': int,
-    b'COREDUMP_UID': int,
-    b'COREDUMP_SESSION': int,
-    b'SESSION_ID': int,
-    b'_SOURCE_REALTIME_TIMESTAMP': convert_timestamp,
-    b'_GID': int,
-    b'INITRD_USEC': int,
-    b'ERRNO': int,
-    b'SYSLOG_FACILITY': int,
-    b'__REALTIME_TIMESTAMP': convert_timestamp,
-    b'_SYSTEMD_SESSION': int,
-    b'_SYSTEMD_OWNER_UID': int,
-    b'COREDUMP_PID': int,
-    b'_AUDIT_SESSION': int,
-    b'USERSPACE_USEC': int,
-    b'PRIORITY': int,
-    b'KERNEL_USEC': int,
-    b'_UID': int,
-    b'SYSLOG_PID': int,
-    b'COREDUMP_SIGNAL': int,
-    b'COREDUMP_GID': int,
-    b'_SOURCE_MONOTONIC_TIMESTAMP': convert_monotonic_timestamp,
-    b'LEADER': int,
-    b'CODE_LINE': int
+    '__MONOTONIC_TIMESTAMP': convert_monotonic_timestamp,
+    'EXIT_STATUS': int,
+    '_AUDIT_LOGINUID': int,
+    '_PID': int,
+    'COREDUMP_UID': int,
+    'COREDUMP_SESSION': int,
+    'SESSION_ID': int,
+    '_SOURCE_REALTIME_TIMESTAMP': convert_timestamp,
+    '_GID': int,
+    'INITRD_USEC': int,
+    'ERRNO': int,
+    'SYSLOG_FACILITY': int,
+    '__REALTIME_TIMESTAMP': convert_timestamp,
+    '_SYSTEMD_SESSION': int,
+    '_SYSTEMD_OWNER_UID': int,
+    'COREDUMP_PID': int,
+    '_AUDIT_SESSION': int,
+    'USERSPACE_USEC': int,
+    'PRIORITY': int,
+    'KERNEL_USEC': int,
+    '_UID': int,
+    'SYSLOG_PID': int,
+    'COREDUMP_SIGNAL': int,
+    'COREDUMP_GID': int,
+    '_SOURCE_MONOTONIC_TIMESTAMP': convert_monotonic_timestamp,
+    'LEADER': int,
+    'CODE_LINE': int
 }
 
 system_fields = frozenset([
-    b'_id',   # actually only _id and _uid are reserved in elasticsearch
-    b'_uid',  # but for consistency we rename all this fields
-    b'_gid',
-    b'_pid',
+    '_id',   # actually only _id and _uid are reserved in elasticsearch
+    '_uid',  # but for consistency we rename all this fields
+    '_gid',
+    '_pid',
 ])

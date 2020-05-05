@@ -15,6 +15,15 @@ from .exceptions import TooLongMessage
 log = logging.getLogger(__name__)
 
 
+def safe_str(value):
+    if isinstance(value, bytes):
+        try:
+            return value.decode('utf-8')
+        except ValueError:
+            pass
+    return str(value)
+
+
 # Based on https://github.com/orionvm/python-gelfclient
 class UdpClient(object):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -51,12 +60,11 @@ class UdpClient(object):
             else:
                 message['host'] = self.source
 
-        message_json = json.dumps(message, separators=(',', ':'), ensure_ascii=False)
-        output = zlib.compress(message_json)
+        message_json = json.dumps(message, separators=(',', ':'), default=safe_str, ensure_ascii=False)
+        output = zlib.compress(message_json.encode('utf-8'))
         if len(output) > self.mtu:
             for chunk in self.chunks(output):
                 self.sock.sendto(chunk, self.sockaddr)
         else:
             self.sock.sendto(output, self.sockaddr)
-            
         return message
