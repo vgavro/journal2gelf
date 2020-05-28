@@ -86,8 +86,8 @@ def convert_record(src, excludes=set(), lower=True, no_dup_underscore=False,
 
     if message_json and src.get('MESSAGE', b'').startswith(b'{"'):
         try:
-            src.update({'_'+k: v for k, v in json.loads(src['MESSAGE'])}.items())
-        except json.JSONDecodeError:
+            src.update({'_'+k: v for k, v in json.loads(src['MESSAGE']).items()})
+        except ValueError:  # json.JSONDecodeError inherits ValueError
             pass
 
     dst = {
